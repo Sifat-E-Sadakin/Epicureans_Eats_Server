@@ -25,6 +25,7 @@ async function run() {
 
     let menu = client.db('Epicurean_Eats').collection('Data')
     let reviews = client.db('Epicurean_Eats').collection('reviews')
+    let carts =  client.db('Epicurean_Eats').collection('carts')
 
 
     app.get('/menu', async(req, res)=>{
@@ -36,6 +37,25 @@ async function run() {
         let result = await reviews.find().toArray()
         res.send(result);
     })
+
+    app.post('/carts', async(req, res)=>{
+      let cart = req.body;
+      let result = await carts.insertOne(cart);
+      res.send(result);
+    })
+
+    app.get('/carts', async(req, res)=>{
+      let mail = req.query.email;
+   
+      if(!mail){
+        res.send([])
+      }
+      let query = {email : mail}
+      let result = await carts.find(query).toArray();
+      res.send(result)
+    })
+
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
