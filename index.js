@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json())
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_U}:${process.env.DB_P}@cluster0.rohhp7w.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,6 +26,7 @@ async function run() {
     let menu = client.db('Epicurean_Eats').collection('Data')
     let reviews = client.db('Epicurean_Eats').collection('reviews')
     let carts =  client.db('Epicurean_Eats').collection('carts')
+    let users =  client.db('Epicurean_Eats').collection('users')
 
 
     app.get('/menu', async(req, res)=>{
@@ -53,6 +54,19 @@ async function run() {
       let query = {email : mail}
       let result = await carts.find(query).toArray();
       res.send(result)
+    })
+
+    app.delete('/carts/:id', async(req, res)=>{
+      let id = req.params.id;
+      let query = {_id : new ObjectId(id)}
+      let result = await carts.deleteOne(query);
+      res.send(result)
+    })
+
+    app.post('/users', async(req, res)=>{
+      let user = req.body;
+      let result = await users.insertOne(user);
+      res.send(result);
     })
 
 
