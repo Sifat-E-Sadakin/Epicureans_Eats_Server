@@ -1,11 +1,28 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.PORT || 3000
 
 app.use(cors());
 app.use(express.json())
+
+let verifyJWT = (req, res, next)=>{
+  let authorization = req.headers.authorization;
+  if (!authorization){
+    return res.status(401).send({error: true, message : "unauthorized access" });
+  }
+  let token = authorization.split(' ')[1];
+
+  jwt.verify(token, process.env.WEB_TOKEN, (err, decoded)=>{
+    if (err){
+      return res.status(401).send({error: true, message : "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -28,6 +45,13 @@ async function run() {
     let carts =  client.db('Epicurean_Eats').collection('carts')
     let users =  client.db('Epicurean_Eats').collection('users')
 
+    app.post('/jwt', (req, res)=>{
+      let user = req.body;
+      let token = jwt.sign(user, process.env.WEB_TOKEN, {expiresIn: '1h'} )
+      res.send({token})
+
+    })
+
 
     app.get('/menu', async(req, res)=>{
         let result = await menu.find().toArray()
@@ -39,13 +63,13 @@ async function run() {
         res.send(result);
     })
 
-    app.post('/carts', async(req, res)=>{
+    app.post('/carts',  async(req, res)=>{
       let cart = req.body;
       let result = await carts.insertOne(cart);
       res.send(result);
     })
 
-    app.get('/carts', async(req, res)=>{
+    app.get('/carts', verifyJWT, async(req, res)=>{
       let mail = req.query.email;
    
       if(!mail){
@@ -63,10 +87,34 @@ async function run() {
       res.send(result)
     })
 
+    // users APIs 
+
     app.post('/users', async(req, res)=>{
       let user = req.body;
+      let query = {email : user.email}
+      let oldUser = await users.findOne(query);
+      if(oldUser){
+        return;
+      }
       let result = await users.insertOne(user);
       res.send(result);
+    })
+
+    app.get('/users', async (req, res)=>{
+      let result = await users.find().toArray();
+      res.send(result);
+    })
+
+    app.patch('/users/admin/:id', async(req, res)=>{
+      let id = req.params.id;
+      let filter = { _id : new ObjectId(id)};
+      let updateRole = {
+        $set: {
+          role : 'admin'
+        }
+      }
+      let result = await users.updateOne(filter, updateRole);
+      res.send(result)
     })
 
 
