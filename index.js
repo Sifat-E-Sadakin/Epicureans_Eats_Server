@@ -117,6 +117,19 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/users/isadmin', async (req, res)=>{
+      let email = req.query.email;
+
+      let query = {email : email}
+      let user =  await users.findOne(query);
+
+
+
+      let result = { admin : user?.role == 'admin' }
+      res.send(result);
+
+    })
+
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
