@@ -17,7 +17,7 @@ let verifyJWT = (req, res, next)=>{
 
   jwt.verify(token, process.env.WEB_TOKEN, (err, decoded)=>{
     if (err){
-      return res.status(401).send({error: true, message : "unauthorized access" });
+      return res.status(403).send({error: true, message : "unauthorized access" });
     }
     req.decoded = decoded;
     next();
@@ -45,6 +45,18 @@ async function run() {
     let carts =  client.db('Epicurean_Eats').collection('carts')
     let users =  client.db('Epicurean_Eats').collection('users')
 
+
+    let verifyAdmin = async (req, res, next)=>{
+      let email = req.decoded.email
+      // console.log(email);
+      let query = { email : email}
+      let user = await users.findOne(query);
+      if(user?.role != 'admin'){
+        return res.status(403).send({err: true, msg: 'forbidden'})
+      }
+      next();
+    }
+
     app.post('/jwt', (req, res)=>{
       let user = req.body;
       let token = jwt.sign(user, process.env.WEB_TOKEN, {expiresIn: '1h'} )
@@ -52,10 +64,23 @@ async function run() {
 
     })
 
-
+    // Menu APIs
     app.get('/menu', async(req, res)=>{
         let result = await menu.find().toArray()
         res.send(result);
+    })
+
+    app.delete('/menu/:id',verifyJWT, verifyAdmin, async (req, res)=>{
+      let id  = req.params.id;
+      let query = { _id : new ObjectId(id)}
+      let result = await menu.deleteOne(query);
+      res.send(result);
+    })
+
+    app.post('/menu',verifyJWT, verifyAdmin, async (req, res)=>{
+      let item = req.body;
+      let result = await menu.insertOne(item);
+      res.send(result);
     })
 
     app.get('/reviews', async(req, res)=>{
