@@ -3,6 +3,7 @@ const app = express()
 const cors = require('cors')
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require("stripe")(process.env.PAY_KEY)
 const port = process.env.PORT || 3000
 
 app.use(cors());
@@ -153,6 +154,40 @@ async function run() {
       let result = { admin : user?.role == 'admin' }
       res.send(result);
 
+    })
+
+    // PAYMENT APIs
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      let amount = price* 100;
+    
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+    
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    //Admin Stats APIs
+
+    app.get('/adminStat', async (req, res)=>{
+      let totalUser = await users.estimatedDocumentCount();
+      let totalItem = await menu.estimatedDocumentCount();
+      //TODO Save payment info
+
+
+      res.send({
+        totalUser,
+        totalItem
+      })
     })
 
 
